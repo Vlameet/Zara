@@ -111,6 +111,92 @@ $('#bestScore').textContent=Math.max(0,...Object.values(scores()));renderLeaders
   const oldOpen=openGame;
   openGame=function(name){oldOpen(name);const area=$('#gameArea');if(area&&!area.querySelector('.zara-game-hint')){const hint=document.createElement('div');hint.className='zara-game-hint';hint.style.cssText='font-size:11px;color:#a9a6c4;margin:4px 0 0;text-align:center';hint.textContent='ZARA ARCADE  •  Рекорды сохраняются на этом устройстве';area.appendChild(hint);}};
 })();
+
+// Enhanced arcade modes: progressive challenge, lives, collectibles and pause.
+function startRacer(){
+  let {canvas,ctx,status}=arcadeCanvas('🏎️ Turbo Lane','Свайпай влево/вправо или используй кнопки. Собирай жетоны и избегай трафика.');
+  let lane=1,obstacles=[],coins=[],score=0,lives=3,tick=0,speed=4.2,paused=false,ended=false,invuln=0;
+  const draw=()=>{
+    ctx.fillStyle='#090d19';ctx.fillRect(0,0,360,420);
+    ctx.fillStyle='#202b40';ctx.fillRect(42,0,276,420);
+    ctx.fillStyle='#111827';ctx.fillRect(50,0,260,420);
+    ctx.strokeStyle='#e5e7eb66';ctx.setLineDash([22,18]);ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(137,0);ctx.lineTo(137,420);ctx.moveTo(223,0);ctx.lineTo(223,420);ctx.stroke();ctx.setLineDash([]);
+    obstacles.forEach(o=>{ctx.fillStyle=o.color;ctx.fillRect(69+o.lane*90,o.y,42,62);ctx.fillStyle='#ffffff99';ctx.fillRect(75+o.lane*90,o.y+8,30,9)});
+    coins.forEach(o=>{ctx.fillStyle='#facc15';ctx.beginPath();ctx.arc(90+o.lane*90,o.y,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff3a3';ctx.stroke()});
+    ctx.fillStyle=invuln>0?'#ffffff': '#38bdf8';ctx.beginPath();ctx.roundRect(68+lane*90,330,44,66,9);ctx.fill();
+    ctx.fillStyle='#dff7ff';ctx.fillRect(75+lane*90,338,30,12);
+    ctx.fillStyle='white';ctx.font='bold 14px system-ui';ctx.fillText('♥ '.repeat(lives),12,22);
+  };
+  const move=d=>{if(!paused&&!ended)lane=Math.max(0,Math.min(2,lane+d))};
+  let startX=null;canvas.onpointerdown=e=>{startX=e.clientX};canvas.onpointerup=e=>{if(startX!==null){let dx=e.clientX-startX;if(Math.abs(dx)>18)move(dx>0?1:-1);startX=null}};
+  window.raceMove=move;
+  const pause=()=>{paused=!paused;$('#racePause').textContent=paused?'Продолжить':'Пауза';if(!paused)loop()};
+  controls('<button class="alt" onclick="raceMove(-1)">←</button><button class="alt" onclick="raceMove(1)">→</button><button id="racePause" class="alt" onclick="racePause()">Пауза</button><button onclick="startRacer()">Заново</button>');
+  window.racePause=pause;
+  function finish(){ended=true;clearInterval(snakeTimer);status.textContent='Финиш! Очки: '+score+' · жетоны: '+Math.floor(score/25);saveScore('Turbo Lane',score)}
+  function loop(){clearInterval(snakeTimer);snakeTimer=setInterval(()=>{
+    if(paused||ended)return;
+    tick++;if(tick%Math.max(14,Math.round(34-speed*2))===0)obstacles.push({lane:Math.floor(Math.random()*3),y:-70,color:['#fb7185','#f97316','#c084fc'][Math.floor(Math.random()*3)]});
+    if(tick%48===0)coins.push({lane:Math.floor(Math.random()*3),y:-15});
+    obstacles.forEach(o=>o.y+=speed);coins.forEach(o=>o.y+=speed);
+    obstacles=obstacles.filter(o=>o.y<440);coins=coins.filter(o=>o.y<440);
+    if(invuln>0)invuln--;
+    let hit=obstacles.findIndex(o=>o.lane===lane&&o.y+62>330&&o.y<395);
+    if(hit>=0&&invuln===0){obstacles.splice(hit,1);lives--;invuln=35;if(lives<=0){finish();return}}
+    let ci=coins.findIndex(o=>o.lane===lane&&o.y>315&&o.y<400);if(ci>=0){coins.splice(ci,1);score+=25}
+    score++;speed=Math.min(8.5,4.2+score/900);status.textContent='Очки: '+score+' · Жизни: '+lives+' · Скорость: '+speed.toFixed(1)+'x';draw();
+  },40)}
+  draw();loop();
+}
+function startShooter(){
+  let {canvas,ctx,status}=arcadeCanvas('🚀 Space Blaster','Управляй кораблём кнопками или пальцем. Стреляй, собирай энергетические ядра и переживи волны.');
+  let x=180,shots=[],foes=[],cores=[],score=0,lives=3,frame=0,paused=false,ended=false,rapid=0;
+  const fire=()=>{if(!paused&&!ended)shots.push({x,y:350})};
+  canvas.onpointerdown=e=>{let r=canvas.getBoundingClientRect();x=Math.max(18,Math.min(342,(e.clientX-r.left)*360/r.width));fire()};
+  canvas.onpointermove=e=>{if(e.buttons){let r=canvas.getBoundingClientRect();x=Math.max(18,Math.min(342,(e.clientX-r.left)*360/r.width))}};
+  window.shootMove=d=>x=Math.max(18,Math.min(342,x+d));window.shootFire=fire;
+  controls('<button class="alt" onclick="shootMove(-25)">←</button><button onclick="shootFire()">Огонь</button><button class="alt" onclick="shootMove(25)">→</button><button class="alt" onclick="shootPause()">Пауза</button><button onclick="startShooter()">Заново</button>');
+  window.shootPause=()=>{paused=!paused;$('#gameArea').querySelector('#arcadeStatus').textContent=paused?'Пауза':'Продолжаем · Очки: '+score};
+  function finish(){ended=true;clearInterval(snakeTimer);status.textContent='Корабль потерян. Счёт: '+score;saveScore('Space Blaster',score)}
+  snakeTimer=setInterval(()=>{
+    if(paused||ended)return;frame++;
+    if(frame%Math.max(17,42-Math.floor(score/100))===0)foes.push({x:20+Math.random()*320,y:-25,hp:score>250?2:1});
+    if(frame%170===0)cores.push({x:20+Math.random()*320,y:-20});
+    if(frame%9===0)fire();
+    shots.forEach(s=>s.y-=8);foes.forEach(f=>f.y+=2.1+Math.min(2,score/600));cores.forEach(c=>c.y+=2.5);
+    for(let i=foes.length-1;i>=0;i--){let j=shots.findIndex(s=>Math.abs(s.x-foes[i].x)<22&&Math.abs(s.y-foes[i].y)<24);if(j>=0){shots.splice(j,1);foes[i].hp--;if(foes[i].hp<=0){foes.splice(i,1);score+=10}}else if(foes[i].y>380){foes.splice(i,1);lives--;if(lives<=0){finish();return}}}
+    let k=cores.findIndex(c=>Math.abs(c.x-x)<25&&c.y>320&&c.y<385);if(k>=0){cores.splice(k,1);score+=50;rapid=100}
+    if(rapid>0)rapid--;
+    ctx.fillStyle='#080d1b';ctx.fillRect(0,0,360,420);ctx.fillStyle='#ffffff88';for(let i=0;i<35;i++)ctx.fillRect((i*71)%360,(i*47+frame*2)%420,2,2);
+    ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.moveTo(x,330);ctx.lineTo(x-18,365);ctx.lineTo(x+18,365);ctx.fill();
+    ctx.fillStyle='#fde047';shots.forEach(s=>ctx.fillRect(s.x-2,s.y,4,12));ctx.fillStyle='#fb7185';foes.forEach(f=>{ctx.beginPath();ctx.arc(f.x,f.y,14,0,Math.PI*2);ctx.fill()});
+    ctx.fillStyle='#34d399';cores.forEach(c=>{ctx.beginPath();ctx.arc(c.x,c.y,8,0,Math.PI*2);ctx.fill()});
+    status.textContent='Очки: '+score+' · Корпус: '+lives+' · '+(rapid?'УСИЛЕНИЕ':'');
+  },35);
+}
+function startRunner(){
+  let {canvas,ctx,status}=arcadeCanvas('🏃 Neon Runner','Тапни по экрану, чтобы прыгнуть. Второй тап в воздухе даёт двойной прыжок. Собирай звёзды.');
+  let y=330,vy=0,jumps=0,obstacles=[],stars=[],score=0,frame=0,paused=false,ended=false;
+  const jump=()=>{if(!paused&&!ended&&jumps<2){vy=jumps===0?-13:-10;jumps++}};
+  canvas.onclick=jump;window.runnerJump=jump;
+  controls('<button onclick="runnerJump()">Прыжок</button><button class="alt" onclick="runnerPause()">Пауза</button><button onclick="startRunner()">Заново</button>');
+  window.runnerPause=()=>{paused=!paused;status.textContent=paused?'Пауза':'Продолжаем · Очки: '+score};
+  function finish(){ended=true;clearInterval(snakeTimer);status.textContent='Столкновение! Счёт: '+score;saveScore('Neon Runner',score)}
+  snakeTimer=setInterval(()=>{
+    if(paused||ended)return;frame++;vy+=.65;y=Math.min(330,y+vy);if(y===330){vy=0;jumps=0}
+    if(frame%Math.max(25,58-Math.floor(score/100))===0)obstacles.push({x:370,h:30+Math.random()*25});
+    if(frame%90===0)stars.push({x:370,y:250-Math.random()*80});
+    obstacles.forEach(o=>o.x-=5+Math.min(2,score/500));stars.forEach(s=>s.x-=5);
+    obstacles=obstacles.filter(o=>o.x>-35);stars=stars.filter(s=>s.x>-20);
+    if(obstacles.some(o=>o.x<76&&o.x>35&&y+38>370-o.h)){finish();return}
+    let si=stars.findIndex(s=>Math.abs(s.x-62)<24&&Math.abs(s.y-y)<38);if(si>=0){stars.splice(si,1);score+=30}
+    score++;ctx.fillStyle='#101827';ctx.fillRect(0,0,360,420);ctx.fillStyle='#4ade80';ctx.fillRect(0,370,360,4);
+    ctx.fillStyle='#38bdf8';ctx.fillRect(48,y,28,40);ctx.fillStyle='#fb7185';obstacles.forEach(o=>ctx.fillRect(o.x,370-o.h,24,o.h));
+    ctx.fillStyle='#facc15';stars.forEach(s=>{ctx.beginPath();ctx.arc(s.x,s.y,8,0,Math.PI*2);ctx.fill()});
+    status.textContent='Очки: '+score+' · Прыжки: '+(2-jumps);
+  },35);
+}
 </script>
 </body>
 </html>
