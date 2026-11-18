@@ -197,6 +197,13 @@ function startRunner(){
     status.textContent='Очки: '+score+' · Прыжки: '+(2-jumps);
   },35);
 }
+
+document.addEventListener('keydown',e=>{
+ if(!$('#modal').classList.contains('open'))return;
+ if(current==='racer'){if(e.key==='ArrowLeft'||e.key==='a')raceMove(-1);if(e.key==='ArrowRight'||e.key==='d')raceMove(1)}
+ if(current==='shooter'){if(e.key==='ArrowLeft'||e.key==='a')shootMove(-22);if(e.key==='ArrowRight'||e.key==='d')shootMove(22);if(e.code==='Space'){e.preventDefault();shootFire()}}
+ if(current==='runner'&&(e.code==='Space'||e.key==='ArrowUp')){e.preventDefault();runnerJump()}
+});
 </script>
 </body>
 </html>
