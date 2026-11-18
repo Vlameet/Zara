@@ -88,8 +88,79 @@ function arcadeCanvas(title,help){$('#gameTitle').textContent=title;$('#gameArea
 function startRacer(){let {ctx,status}=arcadeCanvas('🏎️ Turbo Lane','Нажимай ← → или кнопки, чтобы менять полосу и избегать машин.');let lane=1,obstacles=[],score=0,dead=false,tick=0;const draw=()=>{ctx.fillStyle='#111827';ctx.fillRect(0,0,360,420);ctx.fillStyle='#273449';ctx.fillRect(45,0,270,420);ctx.strokeStyle='#e5e7eb66';ctx.setLineDash([18,16]);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(135,0);ctx.lineTo(135,420);ctx.moveTo(225,0);ctx.lineTo(225,420);ctx.stroke();ctx.setLineDash([]);obstacles.forEach(o=>{ctx.fillStyle='#f87171';ctx.fillRect(68+o.lane*90,o.y,44,62)});ctx.fillStyle='#38bdf8';ctx.fillRect(68+lane*90,330,44,65)};const move=d=>lane=Math.max(0,Math.min(2,lane+d));window.raceMove=move;controls('<button class="alt" onclick="raceMove(-1)">←</button><button class="alt" onclick="raceMove(1)">→</button><button onclick="startRacer()">Заново</button>');document.addEventListener('keydown',e=>{if(current==='racer'&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();move(e.key==='ArrowLeft'?-1:1)}});snakeTimer=setInterval(()=>{tick++;if(tick%32===0)obstacles.push({lane:Math.floor(Math.random()*3),y:-65});obstacles.forEach(o=>o.y+=5);obstacles=obstacles.filter(o=>o.y<440);if(obstacles.some(o=>o.lane===lane&&o.y+62>330&&o.y<395)){clearInterval(snakeTimer);status.textContent='Столкновение! Итог: '+score;saveScore('Turbo Lane',score);return}score++;status.textContent='Очки: '+score;draw()},40);draw()}
 function startShooter(){let {canvas,ctx,status}=arcadeCanvas('🚀 Space Blaster','Двигайся по экрану или стрелками. Касайся поля, чтобы стрелять.');let x=180,shots=[],foes=[],score=0,frame=0;const fire=()=>shots.push({x,y:350});canvas.onpointerdown=e=>{let r=canvas.getBoundingClientRect();x=Math.max(18,Math.min(342,(e.clientX-r.left)*360/r.width));fire()};canvas.onpointermove=e=>{if(e.buttons){let r=canvas.getBoundingClientRect();x=Math.max(18,Math.min(342,(e.clientX-r.left)*360/r.width))}};window.shootMove=d=>x=Math.max(18,Math.min(342,x+d));window.shootFire=fire;controls('<button class="alt" onclick="shootMove(-25)">←</button><button onclick="shootFire()">Огонь</button><button class="alt" onclick="shootMove(25)">→</button><button onclick="startShooter()">Заново</button>');document.addEventListener('keydown',e=>{if(current==='shooter'){if(e.key==='ArrowLeft')x=Math.max(18,x-18);if(e.key==='ArrowRight')x=Math.min(342,x+18);if(e.code==='Space'){e.preventDefault();fire()}}});snakeTimer=setInterval(()=>{frame++;if(frame%35===0)foes.push({x:20+Math.random()*320,y:-25});shots.forEach(s=>s.y-=8);foes.forEach(f=>f.y+=2.5);for(let i=foes.length-1;i>=0;i--){let hit=shots.findIndex(s=>Math.abs(s.x-foes[i].x)<22&&Math.abs(s.y-foes[i].y)<24);if(hit>=0){shots.splice(hit,1);foes.splice(i,1);score+=10}else if(foes[i].y>380){clearInterval(snakeTimer);status.textContent='Дроны прорвались! Счёт: '+score;saveScore('Space Blaster',score);return}}ctx.fillStyle='#080d1b';ctx.fillRect(0,0,360,420);ctx.fillStyle='#fff';for(let i=0;i<35;i++)ctx.fillRect((i*71)%360,(i*47+frame*2)%420,2,2);ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.moveTo(x,330);ctx.lineTo(x-18,365);ctx.lineTo(x+18,365);ctx.fill();ctx.fillStyle='#fde047';shots.forEach(s=>ctx.fillRect(s.x-2,s.y,4,12));ctx.fillStyle='#fb7185';foes.forEach(f=>{ctx.beginPath();ctx.arc(f.x,f.y,14,0,Math.PI*2);ctx.fill()});status.textContent='Очки: '+score},35)}
 function startRunner(){let {canvas,ctx,status}=arcadeCanvas('🏃 Neon Runner','Нажми пробел, экран или кнопку «Прыжок», чтобы перепрыгивать блоки.');let y=330,vy=0,obstacles=[],score=0,frame=0;const jump=()=>{if(y>=329)vy=-13};canvas.onclick=jump;window.runnerJump=jump;controls('<button onclick="runnerJump()">Прыжок</button><button class="alt" onclick="startRunner()">Заново</button>');document.addEventListener('keydown',e=>{if(current==='runner'&&(e.code==='Space'||e.key==='ArrowUp')){e.preventDefault();jump()}});snakeTimer=setInterval(()=>{frame++;vy+=.65;y=Math.min(330,y+vy);if(y===330)vy=0;if(frame%55===0)obstacles.push({x:370});obstacles.forEach(o=>o.x-=5);obstacles=obstacles.filter(o=>o.x>-30);if(obstacles.some(o=>o.x<75&&o.x>35&&y>285)){clearInterval(snakeTimer);status.textContent='Столкновение! Счёт: '+score;saveScore('Neon Runner',score);return}score++;ctx.fillStyle='#101827';ctx.fillRect(0,0,360,420);ctx.fillStyle='#4ade80';ctx.fillRect(0,370,360,4);ctx.fillStyle='#38bdf8';ctx.fillRect(48,y,28,40);ctx.fillStyle='#fb7185';obstacles.forEach(o=>ctx.fillRect(o.x,330,24,40));status.textContent='Очки: '+score},35)}
-function startSnake(){ $('#gameTitle').textContent='🐍 Neon Snake';$('#gameArea').innerHTML='<canvas id="snakeCanvas" width="360" height="360"></canvas><p>Управление: стрелки на клавиатуре или кнопки ниже.</p>';controls('<button class="alt" onclick="snakeDir(0,-1)">↑</button><button class="alt" onclick="snakeDir(-1,0)">←</button><button class="alt" onclick="snakeDir(1,0)">→</button><button class="alt" onclick="snakeDir(0,1)">↓</button><button onclick="startSnake()">Заново</button>');let c=$('#snakeCanvas'),ctx=c.getContext('2d'),cell=18,body=[{x:9,y:10},{x:8,y:10},{x:7,y:10}],dir={x:1,y:0},next={x:1,y:0},food={x:14,y:10},score=0,dead=false;window.snakeDir=(x,y)=>{if(x!==-dir.x||y!==-dir.y)next={x,y}};function draw(){ctx.fillStyle='#0b1118';ctx.fillRect(0,0,360,360);ctx.strokeStyle='#ffffff0b';for(let i=0;i<20;i++){ctx.beginPath();ctx.moveTo(i*18,0);ctx.lineTo(i*18,360);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*18);ctx.lineTo(360,i*18);ctx.stroke()}ctx.fillStyle='#f472b6';ctx.beginPath();ctx.arc(food.x*18+9,food.y*18+9,7,0,7);ctx.fill();body.forEach((p,i)=>{ctx.fillStyle=i?'#6d5bd0':'#a78bfa';ctx.fillRect(p.x*18+2,p.y*18+2,14,14)});ctx.fillStyle='white';ctx.font='bold 14px sans-serif';ctx.fillText('SCORE '+score,10,18)}function tick(){if(dead)return;dir=next;let h={x:body[0].x+dir.x,y:body[0].y+dir.y};if(h.x<0||h.y<0||h.x>=20||h.y>=20||body.some(p=>p.x===h.x&&p.y===h.y)){dead=true;clearInterval(snakeTimer);$('#gameArea').insertAdjacentHTML('beforeend','<p><b>Игра окончена.</b> Счёт: '+score+'</p>');saveScore('Neon Snake',score);return}body.unshift(h);if(h.x===food.x&&h.y===food.y){score+=10;food={x:Math.floor(Math.random()*20),y:Math.floor(Math.random()*20)}}else body.pop();draw()}draw();snakeTimer=setInterval(tick,125)}
-document.addEventListener('keydown',e=>{if(!$('#modal').classList.contains('open')||current!=='snake')return;let m={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};if(m[e.key]){e.preventDefault();snakeDir(...m[e.key])}});
+function startSnake(){
+  $('#gameTitle').textContent='🐍 Neon Snake';
+  $('#gameArea').innerHTML='<div style="width:100%;max-width:460px;margin:auto"><div style="display:flex;justify-content:space-between;gap:10px;margin:0 0 10px"><div style="background:#101a24;border:1px solid #ffffff20;border-radius:12px;padding:9px 13px;text-align:left;flex:1"><small style="color:#b6d5a3">СЧЁТ</small><div id="snakeScore" style="font-size:22px;font-weight:900;color:#fff">0</div></div><div style="background:#101a24;border:1px solid #ffffff20;border-radius:12px;padding:9px 13px;text-align:left;flex:1"><small style="color:#f6cf70">РЕКОРД</small><div id="snakeBest" style="font-size:22px;font-weight:900;color:#fff">0</div></div></div><canvas id="snakeCanvas" width="540" height="540" style="width:100%;max-width:540px;aspect-ratio:1;display:block;border-radius:20px;touch-action:none"></canvas><p id="snakeHint" style="margin:9px 0 0;text-align:center">Собирай яблоки. Следи за хвостом!</p></div>';
+  controls('<button class="alt" onclick="snakeDir(0,-1)">↑</button><button class="alt" onclick="snakeDir(-1,0)">←</button><button class="alt" onclick="snakeDir(1,0)">→</button><button class="alt" onclick="snakeDir(0,1)">↓</button><button class="alt" id="snakePause" onclick="snakeTogglePause()">Пауза</button><button onclick="startSnake()">Заново</button>');
+  const c=$('#snakeCanvas'),ctx=c.getContext('2d'),cell=27,size=20;
+  let body=[{x:8,y:10},{x:7,y:10},{x:6,y:10},{x:5,y:10}],dir={x:1,y:0},next={x:1,y:0};
+  let food={x:14,y:10},score=0,dead=false,paused=false,tick=0,swipe=null;
+  const oldBest=Number((scores()['Neon Snake'])||0);$('#snakeBest').textContent=oldBest;
+  window.snakeDir=(x,y)=>{if(dead||paused)return;if(x!==-dir.x||y!==-dir.y)next={x,y}};
+  window.snakeTogglePause=()=>{if(dead)return;paused=!paused;$('#snakePause').textContent=paused?'Продолжить':'Пауза';$('#snakeHint').textContent=paused?'Пауза. Переведи дух.':'Собирай яблоки. Следи за хвостом!';if(!paused)draw()};
+  c.addEventListener('pointerdown',e=>{swipe={x:e.clientX,y:e.clientY};});
+  c.addEventListener('pointerup',e=>{if(!swipe)return;let dx=e.clientX-swipe.x,dy=e.clientY-swipe.y;swipe=null;if(Math.max(Math.abs(dx),Math.abs(dy))>16){if(Math.abs(dx)>Math.abs(dy))snakeDir(dx>0?1:-1,0);else snakeDir(0,dy>0?1:-1)}});
+  function rounded(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+  function drawField(){
+    let g=ctx.createLinearGradient(0,0,0,540);g.addColorStop(0,'#8edb48');g.addColorStop(1,'#4cae35');ctx.fillStyle=g;ctx.fillRect(0,0,540,540);
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){if((x+y)%2===0){ctx.fillStyle='rgba(210,255,125,.13)';ctx.fillRect(x*cell,y*cell,cell,cell)}}
+    // Soft grass patches, flowers and tiny stones make the arena feel illustrated, not like graph paper.
+    for(let i=0;i<42;i++){let x=((i*83+29)%500)+20,y=((i*137+61)%500)+20;ctx.strokeStyle=i%3===0?'#267b37aa':'#d9ff9a88';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x,y+5);ctx.quadraticCurveTo(x-5,y-3,x-7,y-9);ctx.moveTo(x,y+5);ctx.quadraticCurveTo(x+2,y-4,x+7,y-8);ctx.stroke();if(i%7===0){ctx.fillStyle='#fff2c4';ctx.beginPath();ctx.arc(x+9,y-8,3.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f5b941';ctx.beginPath();ctx.arc(x+9,y-8,1.5,0,Math.PI*2);ctx.fill()}}
+    // Wooden perimeter fence.
+    ctx.strokeStyle='#754323';ctx.lineWidth=13;ctx.strokeRect(7,7,526,526);ctx.strokeStyle='#d99a50';ctx.lineWidth=8;ctx.strokeRect(7,7,526,526);
+    for(let p=20;p<530;p+=54){ctx.fillStyle='#8a4d27';rounded(p-5,0,11,18,4);rounded(p-5,522,11,18,4);rounded(0,p-5,18,11,4);rounded(522,p-5,18,11,4);ctx.fillStyle='#f6bd70';ctx.beginPath();ctx.arc(p,5,3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(p,535,3,0,Math.PI*2);ctx.fill()}
+  }
+  function drawApple(x,y){
+    let px=x*cell+13.5,py=y*cell+14;
+    ctx.save();ctx.translate(px,py);
+    ctx.shadowColor='#8a1717aa';ctx.shadowBlur=12;ctx.shadowOffsetY=5;
+    let grad=ctx.createRadialGradient(-5,-7,2,0,0,15);grad.addColorStop(0,'#ffb2a1');grad.addColorStop(.35,'#ff4b3e');grad.addColorStop(1,'#b90d25');
+    ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(0,-8);ctx.bezierCurveTo(-18,-19,-20,3,-10,12);ctx.bezierCurveTo(-4,18,0,14,2,13);ctx.bezierCurveTo(13,20,22,4,15,-8);ctx.bezierCurveTo(10,-17,4,-13,0,-8);ctx.fill();
+    ctx.shadowColor='transparent';ctx.fillStyle='#6fbd39';ctx.beginPath();ctx.ellipse(7,-15,8,4,-.55,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#704324';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(0,-8);ctx.quadraticCurveTo(-1,-16,2,-20);ctx.stroke();
+    ctx.fillStyle='#ffffffbb';ctx.beginPath();ctx.ellipse(-7,-5,3,5,-.4,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+  function drawSnake(){
+    const pts=body.map(p=>({x:p.x*cell+13.5,y:p.y*cell+13.5}));
+    if(pts.length>1){
+      ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(pts[pts.length-1].x,pts[pts.length-1].y);
+      for(let i=pts.length-2;i>=0;i--){let p=pts[i],n=pts[Math.max(0,i-1)];ctx.quadraticCurveTo(p.x,p.y,(p.x+n.x)/2,(p.y+n.y)/2)}
+      ctx.lineTo(pts[0].x,pts[0].y);ctx.strokeStyle='#174c2c';ctx.lineWidth=23;ctx.stroke();
+      let bodyGrad=ctx.createLinearGradient(0,0,0,540);bodyGrad.addColorStop(0,'#c5f56a');bodyGrad.addColorStop(.48,'#70cf3d');bodyGrad.addColorStop(1,'#379b39');
+      ctx.strokeStyle=bodyGrad;ctx.lineWidth=17;ctx.stroke();
+      for(let i=1;i<pts.length-1;i++){if(i%2===0){ctx.fillStyle='#2e9d3b';ctx.beginPath();ctx.arc(pts[i].x,pts[i].y,4.5,0,Math.PI*2);ctx.fill()}}
+      // Rounded tail tip.
+      let tail=pts[pts.length-1],before=pts[Math.max(0,pts.length-2)],a=Math.atan2(tail.y-before.y,tail.x-before.x);
+      ctx.save();ctx.translate(tail.x,tail.y);ctx.rotate(a);ctx.fillStyle='#65c843';ctx.beginPath();ctx.ellipse(-4,0,10,7,0,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+    let h=pts[0],angle=Math.atan2(dir.y,dir.x),near=Math.hypot(food.x-body[0].x,food.y-body[0].y)<5.2,lick=near&&(tick%12<7);
+    ctx.save();ctx.translate(h.x,h.y);ctx.rotate(angle);
+    ctx.shadowColor='#173c1d88';ctx.shadowBlur=8;ctx.shadowOffsetY=4;
+    let headGrad=ctx.createLinearGradient(-5,-14,8,14);headGrad.addColorStop(0,'#d5ff78');headGrad.addColorStop(1,'#51ba3a');
+    ctx.fillStyle='#174c2c';ctx.beginPath();ctx.ellipse(0,0,17,14,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=headGrad;ctx.beginPath();ctx.ellipse(0,-1,14.5,11.5,0,0,Math.PI*2);ctx.fill();
+    ctx.shadowColor='transparent';
+    // Two expressive eyes on the forward side.
+    for(let side of [-1,1]){ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(8,side*6,5.5,6.5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#17251b';ctx.beginPath();ctx.arc(10,side*6,2.6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(11,side*6-1,1,0,Math.PI*2);ctx.fill()}
+    ctx.strokeStyle='#27602e';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(8,0,5,-.5,.5);ctx.stroke();
+    if(lick){ctx.strokeStyle='#f04c65';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(14,2);ctx.quadraticCurveTo(22,4,27,1);ctx.stroke();ctx.beginPath();ctx.moveTo(25,2);ctx.lineTo(29,-2);ctx.moveTo(25,2);ctx.lineTo(30,5);ctx.stroke()}
+    ctx.restore();
+  }
+  function draw(){
+    drawField();drawApple(food.x,food.y);drawSnake();
+    if(paused||dead){ctx.fillStyle='#06120acc';ctx.fillRect(0,0,540,540);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='900 34px system-ui';ctx.fillText(dead?'ИГРА ОКОНЧЕНА':'ПАУЗА',270,255);ctx.font='600 17px system-ui';ctx.fillText(dead?'Счёт: '+score:'Нажми «Продолжить»',270,287)}
+  }
+  function placeFood(){let p;do{p={x:Math.floor(Math.random()*size),y:Math.floor(Math.random()*size)}}while(body.some(b=>b.x===p.x&&b.y===p.y));food=p}
+  function finish(){dead=true;clearInterval(snakeTimer);$('#snakeHint').textContent='Змейка устала. Итоговый счёт: '+score;saveScore('Neon Snake',score);draw()}
+  function tickGame(){
+    if(dead||paused)return;tick++;dir=next;let h={x:body[0].x+dir.x,y:body[0].y+dir.y};
+    if(h.x<0||h.y<0||h.x>=size||h.y>=size||body.some((p,i)=>i<body.length-1&&p.x===h.x&&p.y===h.y)){finish();return}
+    body.unshift(h);
+    if(h.x===food.x&&h.y===food.y){score+=10;placeFood();$('#snakeHint').textContent='Вкусное яблоко! Продолжай в том же духе.'}else body.pop();
+    $('#snakeScore').textContent=score;draw();
+  }
+  draw();snakeTimer=setInterval(tickGame,135);
+}
+
 function startMemory(){ $('#gameTitle').textContent='🧠 Memory Rush';let icons=['🍒','🚀','🎧','👾','⭐','🍀','🔥','💎'];let deck=[...icons,...icons].sort(()=>Math.random()-.5);memState={deck,opened:[],matched:[],moves:0};renderMemory();controls('<button onclick="startMemory()">Новая игра</button>');}
 function renderMemory(){let st=memState;$('#gameArea').innerHTML='<div><p>Найди все пары. Ходов: <b>'+st.moves+'</b></p><div class="memory-grid">'+st.deck.map((v,i)=>'<button class="memory-card '+(st.opened.includes(i)||st.matched.includes(i)?'open':'')+'" onclick="flipCard('+i+')">'+(st.opened.includes(i)||st.matched.includes(i)?v:'?')+'</button>').join('')+'</div><p id="memoryMsg">Открывай по две карточки.</p></div>'}
 window.flipCard=i=>{let st=memState;if(st.opened.includes(i)||st.matched.includes(i)||st.opened.length===2)return;st.opened.push(i);if(st.opened.length===2){st.moves++;if(st.deck[st.opened[0]]===st.deck[st.opened[1]]){st.matched.push(...st.opened);st.opened=[];setTimeout(()=>{renderMemory();if(st.matched.length===16){$('#memoryMsg').textContent='Победа!';saveScore('Memory Rush',Math.max(10,100-st.moves))}},250)}else{renderMemory();setTimeout(()=>{st.opened=[];renderMemory()},750);return}}renderMemory();if(st.matched.length===16){$('#memoryMsg').textContent='Победа!';saveScore('Memory Rush',Math.max(10,100-st.moves))}};
